@@ -1,0 +1,18 @@
+#camera
+{
+
+}
+#image{
+    width: 666px;
+    height: 500px;
+}
+body {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    background-size: 1920px;
+}
+#menu {
+    text-align: center;
+}
+#stream{
+    text-align: center;
+}
