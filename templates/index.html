@@ -6,15 +6,19 @@
     <title>Title</title>
 </head>
 <body>
-    <div class="container", id="menu">
-        <h2 class="mt-5">Avatar Animator</h2>
-        <div class="row", id="stream">
-            <div class="col-lg-8  offset-lg-2", id="camera">
+<div class="container">
+    <div id="menu">
+            <h2 class="mt-5">Avatar Animator</h2>
+        </div>
+        <div class="streaming-row">
+            <div class="streaming-el">
                 <img src="{{ url_for('camera_image') }}">
+            </div>
+            <div class="streaming-el">
                 <img src="{{ url_for('avatar_image') }}">
             </div>
         </div>
+</div>
 
-    </div>
 </body>
 </html>

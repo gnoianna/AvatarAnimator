@@ -1,18 +1,22 @@
-#camera
-{
-
-}
-#image{
-    width: 666px;
-    height: 500px;
-}
 body {
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-    background-size: 1920px;
+}
+.container{
+    max-width: 1400px;
+    margin: 0 auto;
 }
 #menu {
     text-align: center;
 }
-#stream{
-    text-align: center;
+.streaming-row{
+    display: flex;
+}
+
+.streaming-el{
+    flex: 1;
+}
+.streaming-el img{
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
 }
