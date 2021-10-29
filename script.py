@@ -1,15 +1,23 @@
 import cv2
 
 coo_array = []
+counter = 0
+file_name = './static/tiger_2.jpg'
 
 
 def click_event(event, x, y, flags, params):
-    counter = 0
+    global counter
+
     if event == cv2.EVENT_LBUTTONDOWN:
-        coo_array.append([x, y])
-        cv2.putText(img, '.', (x, y), cv2.FONT_HERSHEY_SIMPLEX,
-                    2, (255, 0, 0), 2)
-        cv2.imshow('./static/tiger_2.jpg', img)
+
+        if counter <= 67:
+            coo_array.append([x, y])
+            cv2.putText(img, '.' + str(counter), (x, y), cv2.FONT_HERSHEY_SIMPLEX,
+                        1, (255, 0, 0), 2)
+        else:
+            print("No more landmarks to choose")
+            pass
+        cv2.imshow(file_name, img)
         counter += 1
 
     if event == cv2.EVENT_RBUTTONDOWN:
@@ -22,10 +30,10 @@ def click_event(event, x, y, flags, params):
 
 
 if __name__ == "__main__":
-    img = cv2.imread('./static/tiger_2.jpg', 1)
-    cv2.imshow('./static/tiger_2.jpg', img)
+    img = cv2.imread(file_name, 1)
+    cv2.imshow(file_name, img)
 
-    cv2.setMouseCallback('./static/tiger_2.jpg', click_event)
+    cv2.setMouseCallback(file_name, click_event)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
