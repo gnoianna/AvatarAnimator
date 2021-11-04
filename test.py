@@ -13,82 +13,43 @@ detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor('./data/shape_predictor_68_face_landmarks.dat')
 
 
-def transform_avatar(dst_img, dst_points, src_img, src_points):
-    dst_img_new_face = np.zeros(dst_img.shape, np.uint8)
-    src_img_copy = np.copy(src_img)
-    # Funkcja gen_triangles indices generuje nam trojkaty ze wszystkich punktow w src_points i zwraca indeksy odpowiednich wartosci
-    for indices in app.gen_triangles_indices(src_points):
-        # Na podstawie trojkatow z src_points musimy też uzykac odpowienie trojkaty z dst_points
-        # Funkcja gen_xy_from_indices generuje wspolrzedne z indeksow
-        src_triangle_points = app.gen_xy_from_indices(src_points, indices)
-        dst_triangle_points = app.gen_xy_from_indices(dst_points, indices)
+def transform_avatar(avatar_img, avatar_points, src_img, src_points):
+    avatar_new_face = np.zeros(src_img.shape, np.uint8)
+    avatar_img_copy = np.copy(avatar_img)
 
-        # Generujemy przyciete zdjecie w ktorym znajduje sie trojkat oraz sam trojkat
+    for i, indices in enumerate(app.gen_triangles_indices(src_points)):
+        avatar_triangle_points = app.gen_xy_from_indices(avatar_points, indices)
+        src_triangle_points = app.gen_xy_from_indices(src_points, indices)
+
+        avatar_triangle, avatar_img_cropped, _ = app.gen_cropped_triangle(avatar_img, avatar_triangle_points)
+        _, avatar_img_cropped_copy, _ = app.gen_cropped_triangle(avatar_img_copy, avatar_triangle_points)
         src_triangle, src_img_cropped, src_b_rect = app.gen_cropped_triangle(src_img, src_triangle_points)
 
-        _, src_img_cropped_2, _ = app.gen_cropped_triangle(src_img_copy, src_triangle_points)
+        x, y, w, h = src_b_rect
 
-        dst_triangle, dst_img_cropped, dst_b_rect = app.gen_cropped_triangle(dst_img, dst_triangle_points)
+        transform_matrix = cv2.getAffineTransform(np.float32(avatar_triangle), np.float32(src_triangle))
 
-        x, y, w, h = dst_b_rect
+        avatar_t_warped = cv2.warpAffine(avatar_img_cropped, transform_matrix,
+                                         (src_img_cropped.shape[1], src_img_cropped.shape[0]), None,
+                                         flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT_101)
 
-        points_src = np.float32(src_triangle)
-        points_dst = np.float32(dst_triangle)
-        transform_matrix = cv2.getAffineTransform(points_src, points_dst)
+        mask = np.zeros(src_img_cropped.shape, dtype=np.uint8)
+        avatar_mask = np.zeros(avatar_img_cropped.shape, dtype=np.uint8)
 
-        dst_img_warped = cv2.warpAffine(src_img_cropped, transform_matrix,
-                                        (dst_img_cropped.shape[1], dst_img_cropped.shape[0]), None,
-                                        flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT_101)
+        mask = cv2.fillConvexPoly(mask, np.int32(src_triangle), (1.0, 1.0, 1.0), 16, 0)
+        avatar_mask = cv2.fillConvexPoly(avatar_mask, np.int32(avatar_triangle), (1.0, 1.0, 1.0), 16, 0)
 
-        print("Type", dst_img_warped.dtype)
+        src_img_cropped *= 1 - mask
+        avatar_img_cropped_copy *= 1 - avatar_mask
+        avatar_t_warped *= mask
 
-        mask = np.zeros(dst_img_cropped.shape, dtype=np.uint8)
-        src_mask = np.zeros(src_img_cropped.shape, dtype=np.uint8)
-        mask = cv2.fillConvexPoly(mask, np.int32(dst_triangle), (1.0, 1.0, 1.0), 16, 0);
-        src_mask = cv2.fillConvexPoly(src_mask, np.int32(src_triangle), (1.0, 1.0, 1.0), 16, 0);
+        new_face_rect_area_gray = cv2.cvtColor(avatar_new_face[y: y + h, x: x + w], cv2.COLOR_BGR2GRAY)
+        _, mask_triangles_designed = cv2.threshold(new_face_rect_area_gray, 0, 255, cv2.THRESH_BINARY_INV)
+        avatar_t_warped = cv2.bitwise_and(avatar_t_warped, avatar_t_warped, mask=mask_triangles_designed)
 
-        # W tym momencie zachowujemy na zdjeciu tylko te elementy poza dst_triangle
-        dst_img_cropped *= 1 - mask
+        avatar_new_face[y: y + h, x: x + w] += avatar_t_warped
 
-        cropped_tr2_mask = np.zeros((h, w), np.uint8)
-
-        cv2.fillConvexPoly(cropped_tr2_mask, np.int32(dst_triangle), 255)
-
-        # if i == 3:
-        #     plt.figure()
-        #     cv2.imshow("Mask", mask)
-        #
-        #     plt.figure()
-        #     cv2.imshow("Src", src_img_cropped)
-        #
-        #     plt.figure()
-        #     cv2.imshow("Dst with black triangle", dst_img_cropped)
-        #
-        #     plt.figure()
-        #     cv2.imshow("Warped", dst_img_warped)
-
-        # W tym momencie dodajemy sam trojkat!
-        # dst_img_cropped += dst_img_warped * mask
-
-        # if i ==3:
-        #     plt.figure()
-        #     cv2.imshow("Dst after warped addition", dst_img_cropped)
-
-        # warped_triangle = cv2.warpAffine(src_img_cropped, transform_matrix, (w, h))
-        dst_img_warped = cv2.bitwise_and(dst_img_warped, dst_img_warped, mask=cropped_tr2_mask)
-
-        # Reconstructing destination face
-        img2_new_face_rect_area = dst_img_new_face[y: y + h, x: x + w]
-        img2_new_face_rect_area_gray = cv2.cvtColor(img2_new_face_rect_area, cv2.COLOR_BGR2GRAY)
-        _, mask_triangles_designed = cv2.threshold(img2_new_face_rect_area_gray, 1, 255, cv2.THRESH_BINARY_INV)
-        dst_img_warped = cv2.bitwise_and(dst_img_warped, dst_img_warped, mask=mask_triangles_designed)
-
-        img2_new_face_rect_area += dst_img_warped
-        dst_img_new_face[y: y + h, x: x + w] = img2_new_face_rect_area
-
-        src_img_cropped_2 *= 1 - src_mask
-
-    return dst_img_new_face, src_img_copy
+    return avatar_new_face, avatar_img_copy
 
 
 # Funkcja pomocnicza do rysowania trojkatow na zdjeciach
@@ -112,11 +73,11 @@ def draw_triangles(src_img, src_points, dst_img, dst_points):
 
 
 def generate():
-    src_img = cv2.imread("./static/woman_ch.jpg")
+    src_img = cv2.imread("./static/1.png")
     avatar_img = cv2.imread("./static/elsa.jpg")
 
-    #src_img = imutils.resize(src_img, height=500)
-    #avatar_img = imutils.resize(avatar_img, height=500)
+    # src_img = imutils.resize(src_img, height=500)
+    # avatar_img = imutils.resize(avatar_img, height=500)
 
     src_without_landmarks, src_points = app.gen_landmarks(src_img, 0)
     avatar_without_landmarks, avatar_points = app.gen_landmarks(avatar_img, 0)
@@ -124,8 +85,8 @@ def generate():
     shape = avatar_without_landmarks.shape
 
     # z avatara robimy shape src
-    face, avatar_without_face = transform_avatar(src_without_landmarks, src_points,
-                                                 avatar_without_landmarks, avatar_points)
+    face, avatar_without_face = transform_avatar(avatar_without_landmarks, avatar_points, src_without_landmarks,
+                                                 src_points)
 
     plt.figure()
     cv2.imshow("Face", face)
