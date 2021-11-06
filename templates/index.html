@@ -3,21 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <link href="../static/style.css" rel="stylesheet" type="text/css">
-    <title>Title</title>
+    <script src="https://code.jquery.com/jquery-3.5.1.js"
+          integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc="
+          crossorigin="anonymous"></script>
+    <script src="../static/ajax-script.js" defer></script>
 </head>
 <body>
 <div class="container">
-    <div id="menu">
-            <h2 class="mt-5">Avatar Animator</h2>
-        </div>
-        <div class="streaming-row">
+    <div class="menu-row">
+        <h2 class="mt-5">Avatar Animator</h2>
+        <form method="post" id="animate-form">
+            <input type="submit" value="Animate" />
+        </form>
+
+    </div>
+    <div class="streaming-row">
             <div class="streaming-el">
                 <img src="{{ url_for('camera_image') }}">
             </div>
             <div class="streaming-el">
                 <img src="{{ url_for('avatar_image') }}">
             </div>
+    </div>
+    <div class="avatar-selection-row">
+        <div class="button" id="first">
+            <img src="{{ url_for('static', filename="elsa.jpg") }}">
         </div>
+        <div class="button" id="second">
+            <img src="{{ url_for('static', filename="avatar.jpg") }}">
+        </div>
+        <div class="button" id="third">
+            <img src="{{ url_for('static', filename="1.png") }}">
+        </div>
+        <div class="button" id="fourth">
+            <img src="{{ url_for('static', filename="2.png") }}">
+        </div>
+
+    </div>
 </div>
 
 </body>
