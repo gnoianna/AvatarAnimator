@@ -1,31 +1,29 @@
 import cv2
 import dlib
 import imutils
+import matplotlib.pyplot as plt
 import numpy as np
 from flask import Flask, render_template, Response, request
 from imutils import face_utils
 from skimage.transform import PiecewiseAffineTransform, warp
 
-global out, detector, predictor, avatar_temp_image, animate
+global out, detector, predictor, avatar_temp_image, avatar_original_image, animate, file_name, camera
 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor('./data/shape_predictor_68_face_landmarks.dat')
 
 app = Flask(__name__, template_folder='./templates')
-camera = cv2.VideoCapture(0)
-file_name = "./static/elsa.jpg"
-avatar_temp_image = cv2.imread(file_name)
 
 
 def all_inside(avatar, points, src_img, src_points):
     global avatar_temp_image
-    print("all_inside")
+
     avatar_new_face = np.zeros(src_img.shape, np.uint8)
     avatar_img_copy = np.copy(avatar)
     avatar_img_copy_copy = np.copy(avatar)
     src_img_copy = np.copy(src_img)
 
-    for i, indices in enumerate(gen_triangles_indices(src_points)):
+    for indices in gen_triangles_indices(src_points):
         avatar_triangle_points = gen_xy_from_indices(points, indices)
         src_triangle_points = gen_xy_from_indices(src_points, indices)
 
@@ -42,13 +40,13 @@ def all_inside(avatar, points, src_img, src_points):
                                          flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT_101)
 
         mask = np.zeros(src_img_cropped.shape, dtype=np.uint8)
-        avatar_mask = np.zeros(avatar_img_cropped.shape, dtype=np.uint8)
+        #avatar_mask = np.zeros(avatar_img_cropped.shape, dtype=np.uint8)
 
         mask = cv2.fillConvexPoly(mask, np.int32(src_triangle), (1.0, 1.0, 1.0), 16, 0)
-        avatar_mask = cv2.fillConvexPoly(avatar_mask, np.int32(avatar_triangle), (1.0, 1.0, 1.0), 16, 0)
+        #avatar_mask = cv2.fillConvexPoly(avatar_mask, np.int32(avatar_triangle), (1.0, 1.0, 1.0), 16, 0)
 
-        src_img_cropped *= 1 - mask
-        avatar_img_cropped_copy *= 1 - avatar_mask
+        #src_img_cropped *= 1 - mask
+        #avatar_img_cropped_copy *= 1 - avatar_mask
         avatar_t_warped *= mask
 
         new_face_rect_area_gray = cv2.cvtColor(avatar_new_face[y: y + h, x: x + w], cv2.COLOR_BGR2GRAY)
@@ -58,25 +56,22 @@ def all_inside(avatar, points, src_img, src_points):
         avatar_new_face[y: y + h, x: x + w] += avatar_t_warped
 
     transform = PiecewiseAffineTransform()
-    transform.estimate(points[0:27], src_points[0:27])
+    transform.estimate(points[0:26], src_points[0:26])
     face = warp(avatar_new_face, transform, output_shape=avatar_img_copy_copy.shape, order=1, mode='wrap')
 
     face = cv2.normalize(face, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
     face_gray = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
     _, face_mask = cv2.threshold(face_gray, 1, 255, cv2.THRESH_BINARY_INV)
-    avatar_kkk = cv2.bitwise_and(avatar, avatar, mask=face_mask)
+    new_avatar = cv2.bitwise_and(avatar, avatar, mask=face_mask)
 
-    avatar_kkk += face
+    new_avatar += face
 
-    avatar_temp_image = avatar_kkk
+    avatar_temp_image = new_avatar
 
 
 def gen_frames_with_landmarks():
-    global out, detector, predictor, avatar_temp_image, animate
+    global out, detector, predictor, avatar_temp_image, animate, avatar_original_image
     print("gen_frames_with_landmarks")
-
-    avatar = cv2.imread(file_name)
-
 
     while True:
         success, frame = camera.read()
@@ -91,8 +86,8 @@ def gen_frames_with_landmarks():
                     camera_shape = face_utils.shape_to_np(camera_shape)
                 if animate:
                     animate = 0
-                    avatar, avatar_shape = gen_landmarks(avatar, 0)
-                    temp_avatar = np.copy(avatar)
+                    avatar_original_image, avatar_shape = gen_landmarks(avatar_original_image, 0)
+                    temp_avatar = np.copy(avatar_original_image)
                     all_inside(temp_avatar, avatar_shape, frame, camera_shape)
 
         try:
@@ -109,7 +104,6 @@ def gen_frames_with_landmarks():
 
 def gen_avatar_stream():
     global avatar_temp_image
-    print("gen_avatar_stream")
 
     while True:
         try:
@@ -174,36 +168,28 @@ def gen_xy_from_indices(points, indices):
     return np.array(triangles)
 
 
-def transform(src_img, src_points, dst_img, dst_points):
-    for indices in gen_triangles_indices(src_points):
-        src_triangle_points = gen_xy_from_indices(src_points, indices)
-        dst_triangle_points = gen_xy_from_indices(dst_points, indices)
+def update_avatar():
+    global avatar_temp_image, avatar_original_image, file_name
 
-        src_triangle_image, src_img_cropped, _ = gen_cropped_triangle(src_img, src_triangle_points)
-        dst_triangle_image, dst_img_cropped, _ = gen_cropped_triangle(dst_img, dst_triangle_points)
+    avatar_temp_image = cv2.imread(file_name)
+    avatar_original_image = cv2.imread(file_name)
 
-        points_src = np.float32(src_triangle_image)
-        points_dst = np.float32(dst_triangle_image)
-        transform_matrix = cv2.getAffineTransform(points_src, points_dst)
 
-        transformed_triangle = cv2.warpAffine(src_img_cropped, transform_matrix,
-                                              (dst_img_cropped.shape[1], dst_img_cropped.shape[0]), None,
-                                              flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT_101)
+def init():
+    global animate, file_name, camera
 
-        mask = np.zeros(dst_img_cropped.shape, dtype=np.uint8)
-
-        mask = cv2.fillConvexPoly(mask, np.int32(dst_triangle_image), (1.0, 1.0, 1.0), 16, 0);
-
-        mask_opp = 1 - mask
-        dst_img_cropped *= mask_opp
-        dst_img_cropped += transformed_triangle * mask
+    camera = cv2.VideoCapture(0)
+    file_name = "./static/sim_1.jpg"
+    animate = 0
+    update_avatar()
 
 
 @app.route('/')
 def index():
-    global animate
-    print("index")
-    animate = 0
+    global animate, avatar_temp_image, avatar_original_image
+
+    init()
+
     return render_template('index.html')
 
 
@@ -225,11 +211,11 @@ def avatar_image():
 def tasks():
     global animate, file_name, avatar_temp_image
     if request.method == 'POST':
-        animate = request.form.get("animate")
-        file = request.form.get("avatar")
-        print(file)
-        #avatar_temp_image = cv2.imread(file_name)
 
+        if request.form.get("avatar"):
+            file_name = "." + request.form.get("avatar")
+            update_avatar()
+        animate = request.form.get("animate")
 
     return render_template('index.html')
 

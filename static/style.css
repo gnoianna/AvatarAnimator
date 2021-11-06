@@ -4,6 +4,7 @@ body {
 .container{
     max-width: 1400px;
     margin: 0 auto;
+    max-height: 100vh;
 }
 .menu-row {
     text-align: center;
@@ -35,4 +36,8 @@ input[type='submit']{
     max-height:90px;
     max-width: 90px;
     cursor:pointer;
+    border: 2px solid transparent;
+}
+.active{
+    border: 2px solid red;
 }
