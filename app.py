@@ -22,11 +22,21 @@ def init():
     avatar_temp_img, avatar_original_img = cv2.imread(file_name), cv2.imread(file_name)
 
 
+def choose_specific_points(points):
+    new_points = np.array(points[0:30])
+    np.append(new_points, points[36])
+    np.append(new_points, points[39])
+    np.append(new_points, points[42])
+    np.append(new_points, points[45])
+    print(new_points)
+    return new_points
+
+
 def generate_new_face(avatar_img, avatar_points, src_points, avatar_new_face):
     transform = PiecewiseAffineTransform()
-    transform.estimate(avatar_points[0:35], src_points[0:35])
+    transform.estimate(choose_specific_points(avatar_points), choose_specific_points(src_points))
 
-    face = warp(avatar_new_face, transform, output_shape=avatar_img.shape, order=1, mode='wrap')
+    face = warp(avatar_new_face, transform, output_shape=avatar_img.shape, order=0, mode='wrap')
     face = cv2.normalize(face, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8U)
 
     face_gray = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
