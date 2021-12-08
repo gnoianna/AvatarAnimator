@@ -1,49 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <link href="../static/style.css" rel="stylesheet" type="text/css">
-    <script src="https://code.jquery.com/jquery-3.5.1.js"
-          integrity="sha256-QWo7LDvxbWT2tbbQ97B53yJnYU3WhH/C8ycbRAkjPDc="
-          crossorigin="anonymous"></script>
-    <script src="../static/ajax-script.js" defer></script>
-</head>
-<body>
-<div class="container">
-    <div class="menu-row">
-        <h2 class="mt-5">Avatar Animator</h2>
-        <form method="post" id="animate-form">
-            <input type="submit" value="Animate" />
-        </form>
+{% extends "base.html" %}
 
-    </div>
-    <div class="streaming-row">
-            <div class="streaming-el">
-                <img src="{{ url_for('camera_image') }}">
-            </div>
-            <div class="streaming-el">
-                <img src="{{ url_for('avatar_image') }}">
-            </div>
-    </div>
-    <div class="avatar-selection-row">
-        <div class="button active" id="first">
-            <img src="{{ url_for('static', filename="1.png") }}">
-        </div>
-        <div class="button" id="second">
-            <img src="{{ url_for('static', filename="2.png") }}">
-        </div>
-        <div class="button" id="third">
-            <img src="{{ url_for('static', filename="3.png") }}">
-        </div>
-        <div class="button" id="fourth">
-            <img src="{{ url_for('static', filename="4.png") }}">
-        </div>
-        <div class="button" id="fifth">
-            <img src="{{ url_for('static', filename="5.png") }}">
-        </div>
+{% block title %}
+    How it works?
+{% endblock %}
 
-    </div>
-</div>
+{% block main %}
+    <div class="row">
+        <div class="col">
+            <p>You can animate selected avatar on the basis of chosen image. After uploading them, the result is displayed.</p>
 
-</body>
-</html>
+            <p>You can use one from four accessible avatars and animate it using real-time video from your camera.</p>
+        </div>
+    </div>
+    </div>
+{% endblock %}
