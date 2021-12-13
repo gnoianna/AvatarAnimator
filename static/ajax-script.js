@@ -20,7 +20,7 @@ $(document).ready(function () {
             type: "POST",
             url: "tasks",
             data: {
-                animate: 1,
+                animate: animate,
             },
             error: function (result) {
                 alert('error');
@@ -31,6 +31,7 @@ $(document).ready(function () {
 
 const buttons = document.querySelectorAll('.filter_button');
 let avatar;
+let animate = 1;
 
 buttons.forEach(elem => {
     elem.addEventListener("click", (e) => {
